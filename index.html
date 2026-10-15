@@ -4,8 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Anatomia · 3D Human Atlas</title>
-<link rel="icon" type="image/png" href="./icon.png">
-
 <meta name="description" content="Explore the human body in 3D, from skin to muscle, organs and bone, down to tissues, cells and organelles.">
 <style>
 :root{
@@ -155,6 +153,104 @@ body.cellmode #hint{display:none}
   #scalebar{display:none}
 }
 @media (max-width:620px){#left{display:none}#crumbs{display:none}}
+
+select,#chem select{color-scheme:dark}
+select option,#chem select option{background:#12152e;color:#e9ecff}
+/* ===== mode switch ===== */
+#modesw{display:flex;padding:3px;border-radius:999px;border:1px solid var(--line);background:rgba(14,16,34,.7);pointer-events:auto;margin-left:auto}
+#modesw button{border:0;background:none;color:var(--mut);font:700 12px system-ui;padding:7px 14px;border-radius:999px;cursor:pointer}
+#modesw button.on{background:linear-gradient(90deg,#7d6cff,#c45cff);color:#fff}
+body.chemmode #left,body.chemmode #right,body.chemmode #hint,body.chemmode #tags,body.chemmode #marker,body.chemmode #hud-cell,body.chemmode #learnbar,body.chemmode #crumbs,body.chemmode .search,body.chemmode #hovertip,body.chemmode #fx{display:none!important}
+/* ===== chemistry ===== */
+#chem{position:fixed;inset:0;z-index:3;pointer-events:none;display:none}
+#chem.on{display:block}
+#chem *{box-sizing:border-box}
+#chem-tabs{position:absolute;left:50%;top:14px;transform:translateX(-50%);display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(14,16,34,.7);border:1px solid var(--line);pointer-events:auto;backdrop-filter:blur(14px);z-index:4}
+#chem-tabs button{border:0;background:none;color:var(--mut);font:600 13px system-ui;padding:8px 14px;border-radius:999px;cursor:pointer;white-space:nowrap}
+#chem-tabs button.on{background:rgba(139,123,255,.28);color:#fff}
+#chem-tabs button.back{display:none}
+#chem-left,#chem-right{position:absolute;top:70px;bottom:16px;pointer-events:auto;background:var(--panel);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--line);border-radius:var(--r);padding:16px;overflow:auto}
+#chem-left{left:16px;width:330px}
+#chem-right{right:16px;width:340px}
+#chem-view{position:absolute;left:362px;right:372px;top:70px;bottom:70px;pointer-events:none}
+#chem[data-tab=elements] #chem-left{width:calc(100vw - 32px - 356px);}
+#chem[data-tab=elements] #chem-view{left:auto;right:16px;width:340px;top:70px;height:300px;bottom:auto;border-radius:var(--r);border:1px solid var(--line)}
+#chem[data-tab=elements] #chem-right{top:382px}
+#chem-hud{position:absolute;left:362px;right:372px;bottom:16px;text-align:center;font-size:13px;color:var(--text);pointer-events:none;text-shadow:0 1px 8px #000}
+#chem[data-tab=elements] #chem-hud{left:auto;right:16px;width:340px;bottom:auto;top:338px;font-size:11px;text-align:center}
+#chem-hud small{color:var(--mut)}
+#chem-hud i,.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin:0 3px 0 8px;vertical-align:middle}
+#chem-hud i.p,.dot.P{background:#ff5a5f}#chem-hud i.n,.dot.N{background:#b4bccf}#chem-hud i.e,.dot.E{background:#66b6ff}
+.dot{margin:0 8px 0 0}
+#chem-toast{position:absolute;left:50%;bottom:60px;transform:translate(-50%,10px);padding:9px 16px;border-radius:12px;background:rgba(10,12,30,.92);border:1px solid var(--line);opacity:0;transition:.25s;font-size:13px;pointer-events:none;max-width:min(520px,90vw);text-align:center}
+#chem-toast.on{opacity:1;transform:translate(-50%,0)}
+#chem h2{font-size:21px;margin:6px 0 2px}#chem h3.lh{font-size:15px;margin:6px 0 12px}
+#chem .muted{color:var(--mut);font-size:12.5px}
+#chem .mono{font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
+#chem .desc{color:#cfd4f5;font-size:13.5px;line-height:1.55;margin:4px 0 10px}
+#chem .sect{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);font-weight:700;margin:14px 0 6px}
+#chem .seg{display:flex;gap:3px;padding:3px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid var(--line);margin:8px 0}
+#chem .seg button{flex:1;border:0;background:none;color:var(--mut);font:600 12px system-ui;padding:7px 8px;border-radius:8px;cursor:pointer}
+#chem .seg button.on{background:rgba(139,123,255,.3);color:#fff}
+#chem .props{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;margin:10px 0;font-size:13px}
+#chem .props dt{color:var(--mut)}#chem .props dd{margin:0;text-align:right}
+#chem .row-btns{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}
+#chem .chips{display:flex;flex-wrap:wrap;gap:6px}
+#chem .chips button{padding:7px 11px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);font:600 12.5px system-ui;cursor:pointer}
+#chem .chips button:hover,#chem .chips button.on{border-color:var(--acc);background:rgba(139,123,255,.2)}
+#chem .chips.big button{flex:1 1 44%}
+#chem .ghost{pointer-events:auto}
+#chem .formula{font-size:20px;font-weight:700;color:#d9d4ff;margin-bottom:4px;letter-spacing:.02em}
+#chem .chip{display:inline-block;margin-top:6px;padding:3px 10px;border-radius:999px;font-size:11.5px;font-weight:700;background:color-mix(in srgb,var(--c) 22%,transparent);color:var(--c);border:1px solid var(--c)}
+#chem table.comp{width:100%;border-collapse:collapse;font-size:12.5px}
+#chem .comp th{text-align:left;color:var(--mut);font-weight:600;padding:3px 4px}
+#chem .comp td{padding:4px;border-top:1px solid var(--line)}
+#chem .comp td:nth-child(n+3),#chem .comp th:nth-child(n+3){text-align:right}
+#chem .comp td i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:7px;vertical-align:middle;border:1px solid rgba(255,255,255,.3)}
+#chem .status{padding:9px 12px;border-radius:10px;font-size:13px;margin:10px 0;line-height:1.45}
+#chem .status.ok{background:rgba(70,200,130,.15);border:1px solid rgba(70,200,130,.5)}
+#chem .status.warn{background:rgba(255,190,70,.13);border:1px solid rgba(255,190,70,.5)}
+#chem .status.bad{background:rgba(255,90,110,.13);border:1px solid rgba(255,90,110,.5)}
+/* periodic table */
+.ct-head{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.tslider{display:none;align-items:center;gap:10px;font-size:12px;color:var(--mut)}.tslider.show{display:flex}.tslider input{width:200px;accent-color:var(--acc)}.tslider b{color:var(--text);min-width:110px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 8px;margin:4px 0 10px}
+.legend button{display:flex;align-items:center;gap:6px;border:0;background:none;color:var(--mut);font:600 11.5px system-ui;padding:3px 6px;border-radius:6px;cursor:pointer}
+.legend button i{width:11px;height:11px;border-radius:3px;background:var(--c)}.legend button.on{background:rgba(255,255,255,.1);color:#fff}
+.ptable{display:grid;grid-template-columns:repeat(18,1fr);grid-template-rows:repeat(7,1fr) 14px repeat(2,1fr);gap:3px;width:100%;max-width:880px}
+.el{position:relative;aspect-ratio:1/1.08;min-width:0;padding:2px;border-radius:5px;border:1px solid color-mix(in srgb,var(--c,#555) 70%,transparent);background:color-mix(in srgb,var(--c,#555) 20%,rgba(10,12,30,.8));color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:inherit;transition:.12s;overflow:hidden}
+.el i{position:absolute;left:3px;top:1px;font-size:clamp(7px,.75vw,10px);font-style:normal;opacity:.75}
+.el b{font-size:clamp(11px,1.45vw,19px);line-height:1}
+.el u{text-decoration:none;font-size:clamp(5px,.58vw,8.5px);opacity:.8;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.el:hover{transform:scale(1.18);z-index:2;background:color-mix(in srgb,var(--c,#555) 55%,rgba(10,12,30,.8))}
+.el.sel{outline:2px solid #fff;z-index:3;background:color-mix(in srgb,var(--c,#555) 60%,rgba(10,12,30,.8))}
+.el.dim{opacity:.18}
+.el.rad::after{content:"";position:absolute;right:3px;top:3px;width:5px;height:5px;border-radius:50%;background:#ffe45a;box-shadow:0 0 5px #ffe45a}
+.el.ph{cursor:default;font-size:clamp(6px,.65vw,9px);color:var(--mut);border-style:dashed;border-color:var(--line);background:none}
+.ct-note{margin-top:12px;color:var(--mut);font-size:12.5px}
+.el-hero{display:flex;gap:14px;align-items:center}
+.hero-sym{position:relative;width:78px;height:84px;border-radius:12px;border:2px solid var(--c);background:color-mix(in srgb,var(--c) 22%,rgba(10,12,30,.8));display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none}
+.hero-sym i{position:absolute;left:7px;top:4px;font-size:12px;font-style:normal}.hero-sym b{font-size:34px;line-height:1}.hero-sym u{text-decoration:none;font-size:10.5px;opacity:.8}
+.isos{display:flex;flex-wrap:wrap;gap:6px}.isos span{padding:3px 9px;border-radius:8px;background:rgba(255,255,255,.07);font-size:13px}.isos small{color:var(--mut)}
+/* molecules */
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.mcard{padding:9px;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--text);cursor:pointer;text-align:left;font-family:inherit;display:flex;flex-direction:column;gap:2px}
+.mcard b{font-size:15px;color:#d9d4ff}.mcard span{font-size:11.5px;color:var(--mut)}
+.mcard:hover,.mcard.on{border-color:var(--acc);background:rgba(139,123,255,.18)}
+/* atom builder + lab */
+.stepper{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px;margin-bottom:8px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.04)}
+.stepper .sl{display:flex;flex-wrap:wrap;align-items:center}.stepper .sl small{flex-basis:100%;color:var(--mut);font-size:11px;margin-left:17px}
+.sc{display:flex;gap:4px}.sc button{width:32px;height:32px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.07);color:#fff;font:700 18px system-ui;cursor:pointer}.sc button:hover{border-color:var(--acc)}
+.sc input{width:56px;text-align:center;border-radius:9px;border:1px solid var(--line);background:rgba(0,0,0,.3);color:#fff;font:700 15px system-ui}
+.ab-id{display:flex;gap:14px;align-items:center}
+.ab-sym{position:relative;width:96px;height:84px;display:flex;align-items:center;justify-content:center;border:2px solid var(--acc);border-radius:12px;flex:none}
+.ab-sym b{font-size:36px}.ab-sym small{position:absolute;left:6px;top:4px;font-size:12px}.ab-sym sub{position:absolute;left:6px;bottom:4px;font-size:12px}.ab-sym em{position:absolute;right:6px;top:2px;font-style:normal;font-size:14px;color:#ffd35a}
+.tip{margin-top:14px;font-size:12.5px}
+.pal{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin-bottom:8px}
+.pal button{aspect-ratio:1;border-radius:10px;border:2px solid transparent;background:color-mix(in srgb,var(--c) 85%,#000);cursor:pointer;color:#10131f;font:800 15px system-ui}
+.pal button.on{border-color:#fff;box-shadow:0 0 14px var(--c)}
+.howto{margin:12px 0 0;padding-left:18px;color:var(--mut);font-size:12.5px;line-height:1.55}.howto b{color:var(--text)}
+@media (max-width:900px){#chem-left{width:100%!important;left:0;right:0;top:auto;bottom:0;height:34vh;border-radius:16px 16px 0 0}#chem-right{display:none}#chem-view{left:0;right:0;top:64px;bottom:36vh}#chem-hud{left:0;right:0;bottom:36vh}#chem[data-tab=elements] #chem-view{display:none}}
 </style>
 </head>
 <body>
@@ -172,6 +268,7 @@ body.cellmode #hint{display:none}
     <input id="search" type="text" placeholder="Search a structure…" autocomplete="off" spellcheck="false">
     <div id="results"></div>
   </div>
+  <div id="modesw" role="group" aria-label="Mode"><button data-m="anat" class="on">Anatomy</button><button data-m="chem">Chemistry</button></div>
 </header>
 
 <aside id="left" class="panel">
@@ -203,6 +300,7 @@ body.cellmode #hint{display:none}
   <button id="btn-reset2" class="ghost" onclick="document.getElementById('btn-reset').click()">Reset</button>
 </div>
 <div id="hint">Drag to rotate · scroll to zoom · right-drag to pan · click any structure</div>
+<div id="chem"><div id="chem-tabs"></div><aside id="chem-left"></aside><div id="chem-view"></div><aside id="chem-right"></aside><div id="chem-hud"></div><div id="chem-toast"></div></div>
 <div id="learnbar" role="region" aria-live="polite"></div>
 <div id="loading"><div style="text-align:center"><div>LOADING ANATOMY</div><div style="width:220px;height:2px;background:#1b1f3a;margin:16px auto 10px;border-radius:2px;overflow:hidden"><div id="loadbar" style="height:100%;width:0;background:linear-gradient(90deg,#7f9bff,#ff8a5c);transition:width .3s"></div></div><div id="loadtxt" style="letter-spacing:.08em;font-size:11px;opacity:.7">Preparing…</div><div style="margin-top:18px;font-size:10px;letter-spacing:.06em;opacity:.45;max-width:260px">Anatomical models: Z-Anatomy / BodyParts3D, CC BY-SA 4.0</div></div></div>
 <script src="app.js"></script>

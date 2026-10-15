@@ -4,6 +4,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { loadRealBody, LAYER_INFO } from './real.js';
 import { buildCell, CELL_INFO } from './cells.js';
 import { initLearn } from './learn.js';
+import { initChem } from './chem.js';
 
 const $ = s => document.querySelector(s);
 const canvas = $('#gl');
@@ -117,7 +118,7 @@ function pickAt(cx, cy) {
 }
 let lastMove = 0, downAt = null;
 canvas.addEventListener('pointermove', e => {
-  if (mode !== 'body') return; const now = performance.now(); if (now - lastMove < 40) return; lastMove = now;
+  if (mode !== 'body' || chemOn) return; const now = performance.now(); if (now - lastMove < 40) return; lastMove = now;
   if (e.buttons) return;
   if (learn.quiz) { hoverTip.style.opacity = 0; return; }
   let id = pickAt(e.clientX, e.clientY); if (id && id === selected && parts.get(id).children) id = lastPickPart; if (id !== hoverId) { hoverId = id; refreshHighlights(); canvas.style.cursor = id ? 'pointer' : 'grab'; showHover(id, e); }
@@ -126,7 +127,7 @@ canvas.addEventListener('pointermove', e => {
 canvas.addEventListener('pointerleave', () => { hoverTip.style.opacity = 0; });
 canvas.addEventListener('pointerdown', e => { downAt = { x: e.clientX, y: e.clientY, t: performance.now() }; ctrl.autoRotate = false; $('#opt-rotate').checked = false; });
 canvas.addEventListener('pointerup', e => {
-  if (!downAt || mode !== 'body') return; const d = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y), dt = performance.now() - downAt.t; downAt = null;
+  if (!downAt || mode !== 'body' || chemOn) return; const d = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y), dt = performance.now() - downAt.t; downAt = null;
   if (d < 5 && dt < 500) { const id = pickAt(e.clientX, e.clientY); if (learn.quiz) { if (learn.onPick) learn.onPick(id, lastPickPart, e.clientX, e.clientY); return; } if (id && id === selected && parts.get(id).children && lastPickPart) selectSub(lastPickPart); else if (id) selectPart(id); else if (selected) deselect(); }
 });
 const hoverTip = $('#hovertip');
@@ -354,6 +355,7 @@ $('#btn-back').addEventListener('click', () => exitCell());
 const sel = $('#cellsel'); Object.entries(CELL_INFO).forEach(([k, v]) => { const o = document.createElement('option'); o.value = k; o.textContent = v.label; sel.appendChild(o); });
 sel.addEventListener('change', () => enterCell(sel.value, cellCur.level));
 document.addEventListener('keydown', e => {
+  if (chemOn) return;
   if (e.target.tagName === 'INPUT' && e.target.type === 'text') return;
   if (e.key === 'Escape') { if (mode === 'cell') exitCell(); else if (selected) deselect(); }
   if (e.key.toLowerCase() === 'g' && mode === 'body') applySex(body.sex === 'm' ? 'f' : 'm');
@@ -369,9 +371,10 @@ function resize() {
   camBody.fov = w / h < .9 ? 46 : 32; camBody.updateProjectionMatrix();
 }
 window.addEventListener('resize', resize);
-const clock = new THREE.Clock();
+let chemOn = false, chem = null; const clock = new THREE.Clock();
 function frame() {
   const dt = Math.min(.05, clock.getDelta()), t = clock.elapsedTime;
+  if (chemOn) { chem.frame(dt, t); requestAnimationFrame(frame); return; }
   stepTween();
   if (mode === 'body') {
     body.update(t); body.rings[0].rotation.z += dt * .25; body.rings[1].rotation.z -= dt * .18;
@@ -399,6 +402,17 @@ buildTags(body.labels, false);
 setPeel(0); showInfo(null); updateHud(); refreshHighlights();
 try { const sv = localStorage.getItem('anatomia.sex'); if (sv === 'f') applySex('f'); } catch (e) { }
 initLearn({ renderer, bodyScene, body, parts, learn, lstate, camBody, ctrl, mode: () => mode, exitCell, enterCell, setPeel, peel: () => peel, applyOpacity, flyTo, BODY_HOME, deselect, selectPart, showInfo, canvas, renderBody: () => renderer.render(bodyScene, camBody), effective, LAYER_INFO, sex: () => body.sex, getLabels: () => showLabels, setLabels: v => { showLabels = v; $('#opt-labels').checked = v; }, setInfoHtml: h => { infoEl.innerHTML = h; markerPos = null; } });
+chem = initChem({ renderer, canvas, envTex, exitMode: () => setMode('anat') });
+let saved = null;
+function setMode(m) {
+  const want = m === 'chem'; if (want === chemOn) return;
+  if (want) { saved = [ctrl.enabled, ctrlCell.enabled]; ctrl.enabled = ctrlCell.enabled = false; chemOn = true; document.body.classList.add('chemmode'); chem.enter(); }
+  else { chem.exit(); chemOn = false; document.body.classList.remove('chemmode'); if (saved) { ctrl.enabled = saved[0]; ctrlCell.enabled = saved[1]; } }
+  document.querySelectorAll('#modesw button').forEach(b => b.classList.toggle('on', (b.dataset.m === 'chem') === chemOn));
+  document.title = chemOn ? 'Anatomia · Chemistry Lab' : 'Anatomia · 3D Human Atlas';
+}
+document.querySelectorAll('#modesw button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.m)));
+window.__setMode = setMode;
 $('#loading').classList.add('gone');
 frame();
 window.__app = { selectPart, enterCell, exitCell, setPeel, camBody, ctrl, get mode() { return mode; }, parts, flyTo, lstate, body, applySex, learn };
