@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Anatomia · 3D Human Atlas</title>
+<link rel="icon" type="image/png" href="./icon.png">
+
+<meta name="description" content="Explore the human body in 3D, from skin to muscle, organs and bone, down to tissues, cells and organelles.">
+<style>
+:root{
+  --bg:#05060e; --panel:rgba(14,16,34,.62); --line:rgba(160,170,255,.16); --text:#e9ecff; --mut:#9aa3d6; --acc:#8b7bff; --acc2:#ff6b8b;
+  --r:16px;
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none;will-change:transform,filter}
+#gl:active{cursor:grabbing}
+#fx{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .5s;background:radial-gradient(circle at 50% 50%,rgba(150,140,255,.0) 0%,rgba(150,140,255,.35) 55%,rgba(20,10,60,.85) 100%);z-index:5}
+#fx.on{opacity:1}
+#tags{position:fixed;inset:0;pointer-events:none;z-index:2;overflow:hidden}
+.tag{position:absolute;left:0;top:0;pointer-events:auto;cursor:pointer;display:flex;align-items:center;gap:7px;padding:4px 10px 4px 6px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(10,12,30,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#e9ecff;font:600 11px/1 system-ui;letter-spacing:.02em;white-space:nowrap;transition:background .2s,border-color .2s,box-shadow .2s;will-change:transform}
+.tag i{width:8px;height:8px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 3px rgba(139,123,255,.25)}
+.tag:hover,.tag.on{background:rgba(70,50,190,.7);border-color:rgba(190,180,255,.8);box-shadow:0 0 18px rgba(139,123,255,.55)}
+.tag.on i{background:var(--acc2);box-shadow:0 0 0 3px rgba(255,107,139,.3)}
+#marker{position:fixed;left:0;top:0;width:0;height:0;pointer-events:none;display:none;z-index:2}
+#marker::before,#marker::after{content:"";position:absolute;left:-22px;top:-22px;width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(255,120,150,.9);animation:ping 1.8s infinite}
+#marker::after{animation-delay:.9s}
+@keyframes ping{0%{transform:scale(.3);opacity:1}100%{transform:scale(1.7);opacity:0}}
+#hovertip{position:fixed;left:0;top:0;pointer-events:none;z-index:6;opacity:0;transition:opacity .15s;padding:5px 10px;border-radius:8px;background:rgba(10,12,30,.85);border:1px solid var(--line);font-size:12px;font-weight:600}
+
+header#top{position:fixed;left:0;right:0;top:0;z-index:4;display:flex;align-items:center;gap:22px;padding:14px 20px;pointer-events:none}
+header#top>*{pointer-events:auto}
+.brand{display:flex;align-items:center;gap:10px}
+.logo{width:26px;height:26px;border-radius:8px;background:conic-gradient(from 200deg,#8b7bff,#ff6b8b,#ffb86b,#8b7bff);box-shadow:0 0 18px rgba(139,123,255,.6);position:relative}
+.logo::after{content:"";position:absolute;inset:6px;border-radius:50%;background:#0b0c1d}
+.brand b{letter-spacing:.22em;font-size:13px}
+.brand span{color:var(--mut);font-size:12px}
+#crumbs{display:flex;align-items:center;gap:8px;color:var(--mut);font-size:13px}
+#crumbs b{opacity:.5}
+#crumbs .on{color:#fff;font-weight:600}
+#crumbs button{background:none;border:0;color:var(--acc);cursor:pointer;font:inherit}
+#crumbs button:hover{text-decoration:underline}
+.search{margin-left:auto;position:relative;width:260px}
+.search input{width:100%;padding:9px 14px 9px 36px;border-radius:12px;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:var(--text);font:inherit;outline:none}
+.search input:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(139,123,255,.2)}
+.search svg{position:absolute;left:12px;top:10px;opacity:.6}
+#results{display:none;position:absolute;top:44px;left:0;right:0;border-radius:12px;border:1px solid var(--line);background:rgba(12,14,32,.95);backdrop-filter:blur(14px);overflow:hidden}
+#results button{display:flex;align-items:center;gap:9px;width:100%;padding:9px 12px;background:none;border:0;color:var(--text);font:inherit;text-align:left;cursor:pointer}
+#results button:hover{background:rgba(139,123,255,.18)}
+#results i{width:8px;height:8px;border-radius:50%}
+#results small{margin-left:auto;color:var(--mut)}
+
+.panel{position:fixed;z-index:3;background:var(--panel);backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);border:1px solid var(--line);border-radius:var(--r);box-shadow:0 20px 60px rgba(0,0,0,.45)}
+#left{left:18px;top:68px;width:268px;padding:16px 16px 12px;max-height:calc(100% - 90px);overflow:auto}
+#right{right:18px;top:68px;width:318px;padding:20px;max-height:calc(100% - 90px);overflow:auto}
+.h{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);font-weight:700;margin-bottom:10px}
+
+.parts{margin:14px 0 4px}.parts .cnt{opacity:.6;font-weight:500;margin-left:4px}
+.pfilter{width:100%;box-sizing:border-box;margin:2px 0 8px;padding:7px 10px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--text);font:inherit;font-size:12px;outline:none}
+.pfilter:focus{border-color:var(--acc)}
+.expl{display:flex;align-items:center;gap:10px;margin:2px 0 8px;font-size:12px;color:var(--mut)}.expl input{flex:1;accent-color:var(--acc)}
+.plist{display:flex;flex-wrap:wrap;gap:5px;max-height:150px;overflow:auto;padding:2px 2px 4px 0}
+.plist button{border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--text);font:inherit;font-size:11.5px;padding:4px 9px;border-radius:99px;cursor:pointer;transition:.15s}
+.plist button:hover{border-color:var(--acc);background:rgba(139,123,255,.18)}.plist button.on{background:linear-gradient(135deg,rgba(139,123,255,.55),rgba(255,107,139,.4));border-color:transparent;color:#fff}
+.plist small{opacity:.55;margin-left:5px;font-size:10px}
+.eyebrow a{color:var(--acc);text-decoration:none}
+
+.learnbtns{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}.learnbtns button{padding:8px 6px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:.15s}
+.learnbtns button:hover{border-color:var(--acc);background:rgba(139,123,255,.2)}.learnbtns #btn-tour{grid-column:1/3;background:linear-gradient(135deg,rgba(139,123,255,.35),rgba(255,107,139,.28))}
+#learnbar{position:fixed;left:50%;bottom:58px;transform:translate(-50%,20px);width:min(620px,calc(100vw - 32px));z-index:9;padding:16px 18px 14px;border-radius:16px;background:rgba(12,14,32,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--line);box-shadow:0 14px 50px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:.3s}
+#learnbar.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}body.cellmode #learnbar{bottom:112px}
+#learnbar h3{margin:8px 0 4px;font-size:18px}#learnbar h3 small{font-size:13px;opacity:.6;font-weight:500;margin-left:6px}#learnbar p{margin:0 0 12px;color:var(--mut);font-size:13.5px;line-height:1.5}
+.lb-top{display:flex;justify-content:space-between;align-items:center}.lb-badge{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc);font-weight:700}.lb-score{font-size:12px;color:var(--mut)}
+.lb-dots{display:flex;gap:5px}.lb-dots i{width:18px;height:4px;border-radius:3px;background:rgba(255,255,255,.14)}.lb-dots i.on{background:var(--acc2)}.lb-dots i.done{background:var(--acc)}
+.lb-btns{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.lb-btns button{padding:7px 14px;border-radius:9px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.lb-btns button.ghost{border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text)}.lb-btns button:disabled{opacity:.4;cursor:default}
+.lb-btns .cta.sm{width:auto;margin:0;border:0;background:linear-gradient(135deg,#8b7bff,#ff6b8b);color:#fff}
+.lb-cats{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}.lb-cats button{padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);font:inherit;font-size:12.5px;cursor:pointer}.lb-cats button.on{background:linear-gradient(135deg,rgba(139,123,255,.55),rgba(255,107,139,.4));border-color:transparent}
+.lb-msg.ok{color:#6fe3a0}.lb-msg.bad{color:#ff8fa3}.lb-missed{font-size:12.5px}
+#peelwrap{margin-bottom:16px}
+#sex{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;margin-bottom:16px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid var(--line)}
+#sex button{padding:7px 0;border:0;border-radius:9px;background:none;color:var(--mut);font:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:.2s}
+#sex button.on{background:linear-gradient(135deg,rgba(139,123,255,.45),rgba(255,107,139,.35));color:#fff;box-shadow:0 0 0 1px rgba(160,170,255,.35)}
+#peel{width:100%;-webkit-appearance:none;appearance:none;height:8px;border-radius:99px;background:linear-gradient(90deg,#7f9bff,#e0524b 33%,#ff9b7a 62%,#efe3c8);outline:none;margin:6px 0 10px}
+#peel::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;border:3px solid var(--acc);box-shadow:0 0 14px rgba(139,123,255,.9);cursor:pointer}
+#peel::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid var(--acc);cursor:pointer}
+#stages{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+#stages button{padding:6px 0;border-radius:8px;border:1px solid transparent;background:rgba(255,255,255,.04);color:var(--mut);font:600 11px system-ui;cursor:pointer}
+#stages button:hover{color:#fff}
+#stages button.on{background:rgba(139,123,255,.25);border-color:rgba(139,123,255,.7);color:#fff}
+.lrow{display:grid;grid-template-columns:26px 1fr 70px;align-items:center;gap:8px;padding:5px 0;border-top:1px solid rgba(255,255,255,.05)}
+.lrow label{font-size:13px}
+.lrow.off label{opacity:.45}
+.eye{width:24px;height:24px;border-radius:7px;border:1px solid var(--line);background:rgba(255,255,255,.04);cursor:pointer;display:grid;place-items:center}
+.eye span{width:10px;height:10px;border-radius:50%;background:var(--c);box-shadow:0 0 10px var(--c)}
+.lrow.off .eye span{background:transparent;box-shadow:none;border:1.5px solid var(--c)}
+.lrow input[type=range]{width:100%;accent-color:var(--acc);height:3px}
+.opts{display:flex;flex-direction:column;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.chk{display:flex;align-items:center;gap:8px;color:var(--mut);font-size:13px;cursor:pointer}
+.chk input{accent-color:var(--acc)}
+.ghost{padding:7px 12px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--text);font:600 12px system-ui;cursor:pointer}
+.ghost:hover{border-color:var(--acc)}
+.kbd{margin-top:10px;color:var(--mut);font-size:11px;opacity:.8}
+.kbd kbd{font:600 10px ui-monospace,monospace;border:1px solid var(--line);border-radius:4px;padding:1px 5px;background:rgba(255,255,255,.05)}
+
+.eyebrow{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);font-weight:700}
+.eyebrow i{width:8px;height:8px;border-radius:50%}
+#info h2{font-size:24px;line-height:1.15;margin:8px 0 8px;font-weight:700;letter-spacing:-.01em}
+.desc{color:#c3c9ee;font-size:13.5px}
+.quick-h{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);font-weight:700;margin:16px 0 8px}
+.quick{display:flex;flex-wrap:wrap;gap:6px}
+.quick button{padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--text);font:500 12px system-ui;cursor:pointer}
+.quick button:hover,.quick button.on{background:rgba(139,123,255,.3);border-color:var(--acc)}
+.steps{display:flex;align-items:center;flex-wrap:wrap;gap:4px;font-size:12px;color:var(--mut)}
+.steps b{opacity:.4}
+.steps span,.steps button{padding:4px 9px;border-radius:999px;border:1px solid var(--line);background:none;color:var(--mut);font:600 11px system-ui}
+.steps button{cursor:pointer;color:var(--text)}
+.steps button:hover{border-color:var(--acc);background:rgba(139,123,255,.2)}
+.steps .on{color:#fff;background:rgba(139,123,255,.3);border-color:var(--acc)}
+.cellcard{margin-top:16px;padding:14px;border-radius:14px;background:linear-gradient(160deg,rgba(139,123,255,.16),rgba(255,107,139,.08));border:1px solid rgba(160,150,255,.3)}
+.cellcard .quick-h{margin-top:0}
+.cc-name{font-weight:700;font-size:16px}
+.cc-sub{color:#c3c9ee;font-size:12.5px;margin:2px 0 10px}
+.cta{margin-top:12px;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;border-radius:12px;border:0;background:linear-gradient(90deg,#7d6cff,#c45cff);color:#fff;font:700 13px system-ui;cursor:pointer;box-shadow:0 8px 24px rgba(125,108,255,.45)}
+.cta:hover{filter:brightness(1.12)}
+.row-btns{display:flex;align-items:center;justify-content:space-between;margin-top:14px}
+.hotdesc{margin-top:14px;color:#d6dbff;font-size:13px;min-height:60px}
+.hotdesc b{display:block;font-size:15px;margin-bottom:3px}
+.hotdesc p{color:#c3c9ee}
+
+#hud-cell{position:fixed;z-index:4;left:50%;bottom:22px;transform:translateX(-50%);display:none;align-items:center;gap:12px;padding:10px 12px;border-radius:18px}
+body.cellmode #hud-cell{display:flex}
+body.cellmode #left{display:none}
+#ladder{display:flex;gap:4px;padding:4px;border-radius:12px;background:rgba(255,255,255,.05)}
+#ladder button{padding:8px 16px;border-radius:9px;border:0;background:none;color:var(--mut);font:700 12px system-ui;cursor:pointer}
+#ladder button.on{background:linear-gradient(90deg,#7d6cff,#c45cff);color:#fff}
+#cellsel{padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);font:600 12px system-ui}
+#cellsel option{background:#10122a}
+#scalebar{display:flex;flex-direction:column;font-size:11px;color:var(--mut);padding:0 6px;min-width:150px}
+#scalebar b{color:#fff;font-size:12px}
+#btn-back{padding:9px 14px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);font:700 12px system-ui;cursor:pointer}
+#btn-back:hover{border-color:var(--acc)}
+#hint{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:3;color:var(--mut);font-size:12px;pointer-events:none;opacity:.85;text-align:center}
+body.cellmode #hint{display:none}
+#loading{position:fixed;inset:0;z-index:20;background:var(--bg);display:grid;place-items:center;transition:opacity .6s;color:var(--mut);letter-spacing:.2em;font-size:12px}
+#loading.gone{opacity:0;pointer-events:none}
+@media (max-width:900px){
+  #left{width:230px;top:64px;left:10px;padding:12px}
+  #right{top:auto;bottom:10px;right:10px;left:10px;width:auto;max-height:32%;padding:14px}
+  #info h2{font-size:19px}
+  .search{width:170px}.brand span{display:none}
+  #hint{display:none}
+  body.cellmode #hud-cell{flex-wrap:wrap;justify-content:center;width:calc(100% - 20px);bottom:calc(38% + 20px)}
+  #scalebar{display:none}
+}
+@media (max-width:620px){#left{display:none}#crumbs{display:none}}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="fx"></div>
+<div id="tags"></div>
+<div id="marker"></div>
+<div id="hovertip"></div>
+
+<header id="top">
+  <div class="brand"><span class="logo"></span><b>ANATOMIA</b><span>3D human atlas</span></div>
+  <nav id="crumbs"></nav>
+  <div class="search">
+    <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="7" cy="7" r="5" fill="none" stroke="#fff" stroke-width="1.6"/><path d="M11 11l3.5 3.5" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>
+    <input id="search" type="text" placeholder="Search a structure…" autocomplete="off" spellcheck="false">
+    <div id="results"></div>
+  </div>
+</header>
+
+<aside id="left" class="panel">
+  <div id="sex" role="group" aria-label="Body type"><button data-s="m" class="on" aria-pressed="true">Male</button><button data-s="f" aria-pressed="false">Female</button></div>
+  <div id="peelwrap">
+    <div class="h">Peel the body</div>
+    <input id="peel" type="range" min="0" max="1000" value="0" aria-label="Peel depth">
+    <div id="stages"><button>Surface</button><button>Muscle</button><button>Organs</button><button>Skeleton</button></div>
+  </div>
+  <div class="h">Layers</div>
+  <div id="layers"></div>
+  <div class="opts">
+    <label class="chk"><input type="checkbox" id="opt-labels" checked> Show labels</label>
+    <label class="chk"><input type="checkbox" id="opt-rotate" checked> Auto-rotate</label>
+    <div><button id="btn-reset" class="ghost">Reset view</button></div>
+  </div>
+  <div class="h" style="margin-top:14px">Learn</div>
+  <div class="learnbtns"><button id="btn-tour">Guided tour</button><button id="btn-quiz">Quiz</button><button id="btn-print">Label sheet</button></div>
+  <div class="kbd"><kbd>L</kbd> labels · <kbd>G</kbd> sex · <kbd>R</kbd> reset · <kbd>Esc</kbd> back</div>
+</aside>
+
+<aside id="right" class="panel"><div id="info"></div></aside>
+
+<div id="hud-cell" class="panel">
+  <button id="btn-back">← Body</button>
+  <div id="ladder"><button data-l="tissue">Tissue</button><button data-l="cell">Cell</button><button data-l="organelle">Organelles</button></div>
+  <select id="cellsel" aria-label="Tissue type"></select>
+  <div id="scalebar"></div>
+  <button id="btn-reset2" class="ghost" onclick="document.getElementById('btn-reset').click()">Reset</button>
+</div>
+<div id="hint">Drag to rotate · scroll to zoom · right-drag to pan · click any structure</div>
+<div id="learnbar" role="region" aria-live="polite"></div>
+<div id="loading"><div style="text-align:center"><div>LOADING ANATOMY</div><div style="width:220px;height:2px;background:#1b1f3a;margin:16px auto 10px;border-radius:2px;overflow:hidden"><div id="loadbar" style="height:100%;width:0;background:linear-gradient(90deg,#7f9bff,#ff8a5c);transition:width .3s"></div></div><div id="loadtxt" style="letter-spacing:.08em;font-size:11px;opacity:.7">Preparing…</div><div style="margin-top:18px;font-size:10px;letter-spacing:.06em;opacity:.45;max-width:260px">Anatomical models: Z-Anatomy / BodyParts3D, CC BY-SA 4.0</div></div></div>
+<script src="app.js"></script>
+</body>
+</html>

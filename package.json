@@ -1,0 +1,15 @@
+{
+  "name": "human-anatomy-3d",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "esbuild src/main.js --bundle --minify --format=iife --outfile=app.js"
+  },
+  "dependencies": {
+    "three": "0.170.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "gltfpack": "^1.3.0"
+  }
+}
